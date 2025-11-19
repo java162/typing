@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Typing Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .text-muted-foreground {
+        color: theme("colors.gray.400");
+      }
+      .text-destructive {
+        color: theme("colors.red.600");
+      }
+      .bg-destructive-bg {
+        background-color: rgba(220, 38, 38, 0.1);
+      }
+      .border-primary {
+        border-color: theme("colors.blue.600");
+      }
+      .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-50 text-gray-900 flex flex-col items-center min-h-screen p-6"
+  >
+    <div class="w-full max-w-4xl space-y-8">
+      <header class="text-center space-y-2">
+        <div class="flex items-center justify-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-8 h-8 text-blue-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 10h11M9 21V3M21 14v-4m0 0h-5"
+            />
+          </svg>
+          <h1 class="text-4xl font-bold text-gray-800">Typing Test</h1>
+        </div>
+        <p class="text-gray-500 text-lg">Test your typing speed and accuracy</p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-6 bg-white rounded-lg shadow text-center space-y-2">
+          <p class="uppercase tracking-wide text-sm text-gray-400">Speed</p>
+          <p id="wpm" class="text-4xl font-bold text-blue-600">0</p>
+          <p class="text-sm text-gray-400">WPM</p>
+        </div>
+
+        <div class="p-6 bg-white rounded-lg shadow text-center space-y-2">
+          <p class="uppercase tracking-wide text-sm text-gray-400">Accuracy</p>
+          <p id="accuracy" class="text-4xl font-bold text-green-600">100%</p>
+          <p class="text-sm text-gray-400">Correct</p>
+        </div>
+
+        <div class="p-6 bg-white rounded-lg shadow text-center space-y-2">
+          <p class="uppercase tracking-wide text-sm text-gray-400">Progress</p>
+          <p id="progress" class="text-4xl font-bold text-purple-600">0%</p>
+          <p class="text-sm text-gray-400">Complete</p>
+        </div>
+      </div>
+
+      <section class="p-8 bg-white rounded-lg shadow space-y-6">
+        <div class="relative">
+          <div
+            id="textDisplay"
+            class="text-2xl font-mono leading-relaxed p-6 bg-gray-100 rounded-lg min-h-[200px] select-none"
+          ></div>
+        </div>
+
+        <textarea
+          id="inputArea"
+          rows="4"
+          placeholder="Start typing here..."
+          class="w-full p-4 text-lg font-mono border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+        ></textarea>
+
+        <div class="flex justify-center">
+          <button
+            id="resetBtn"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582a7 7 0 117.09 7.09V13a5 5 0 10-5-5h-1"
+              />
+            </svg>
+            Reset Test
+          </button>
+        </div>
+
+        <div
+          id="result"
+          class="hidden text-center p-6 bg-blue-100 rounded-lg space-y-2"
+        >
+          <p class="text-2xl font-bold text-blue-700">Test Complete! 🎉</p>
+          <p class="text-gray-700">
+            You typed at
+            <span id="finalWpm" class="font-bold text-gray-900">0</span> WPM
+            with
+            <span id="finalAccuracy" class="font-bold text-gray-900">100%</span>
+            accuracy.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      (() => {
+        const sampleTexts = [
+          "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet and is commonly used for typing practice.",
+          "Practice makes perfect. The more you type, the faster and more accurate you will become. Focus on accuracy first, then speed will follow naturally.",
+          "Typing is an essential skill in the modern world. Whether you're writing emails, coding, or chatting with friends, good typing skills save time and effort.",
+          "Keep your fingers on the home row keys. This is the foundation of touch typing and will help you type without looking at the keyboard.",
+        ];
+
+        const textDisplay = document.getElementById("textDisplay");
+        const inputArea = document.getElementById("inputArea");
+        const resetBtn = document.getElementById("resetBtn");
+        const wpmDisplay = document.getElementById("wpm");
+        const accuracyDisplay = document.getElementById("accuracy");
+        const progressDisplay = document.getElementById("progress");
+        const resultSection = document.getElementById("result");
+        const finalWpm = document.getElementById("finalWpm");
+        const finalAccuracy = document.getElementById("finalAccuracy");
+
+        let text = "";
+        let userInput = "";
+        let startTime = null;
+        let endTime = null;
+        let isActive = false;
+        let currentIndex = 0;
+        let wpm = 0;
+        let accuracy = 100;
+        let intervalId = null;
+
+        function resetTest() {
+          text = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+          userInput = "";
+          startTime = null;
+          endTime = null;
+          isActive = false;
+          currentIndex = 0;
+          wpm = 0;
+          accuracy = 100;
+          clearInterval(intervalId);
+          inputArea.disabled = false;
+          inputArea.value = "";
+          inputArea.focus();
+          updateDisplay();
+          resultSection.classList.add("hidden");
+        }
+
+        function updateDisplay() {
+          textDisplay.innerHTML = "";
+          for (let i = 0; i < text.length; i++) {
+            const span = document.createElement("span");
+            span.textContent = text[i];
+
+            if (i >= userInput.length) {
+              span.classList.add("text-muted-foreground");
+            } else if (userInput[i] === text[i]) {
+              span.classList.add("text-gray-900");
+            } else {
+              span.classList.add("text-destructive");
+              span.classList.add("bg-destructive-bg");
+            }
+
+            if (i === currentIndex) {
+              span.classList.add(
+                "border-l-2",
+                "border-primary",
+                "animate-pulse"
+              );
+            }
+            textDisplay.appendChild(span);
+          }
+
+          wpmDisplay.textContent = wpm;
+          accuracyDisplay.textContent = accuracy + "%";
+          progressDisplay.textContent =
+            Math.round((userInput.length / text.length) * 100) + "%";
+        }
+
+        function calculateWPM() {
+          if (!startTime) return;
+          const minutes = (Date.now() - startTime) / 1000 / 60;
+          const wordsTyped = userInput
+            .trim()
+            .split(/\s+/)
+            .filter((w) => w).length;
+          wpm = minutes > 0 ? Math.round(wordsTyped / minutes) : 0;
+        }
+
+        function calculateAccuracy() {
+          if (userInput.length === 0) {
+            accuracy = 100;
+            return;
+          }
+          let correctChars = 0;
+          for (let i = 0; i < userInput.length; i++) {
+            if (userInput[i] === text[i]) {
+              correctChars++;
+            }
+          }
+          accuracy = Math.round((correctChars / userInput.length) * 100);
+        }
+
+        function finishTest() {
+          isActive = false;
+          endTime = Date.now();
+          calculateWPM();
+          updateDisplay();
+          inputArea.disabled = true;
+          resultSection.classList.remove("hidden");
+          finalWpm.textContent = wpm;
+          finalAccuracy.textContent = accuracy + "%";
+          clearInterval(intervalId);
+        }
+
+        inputArea.addEventListener("input", (e) => {
+          const value = e.target.value;
+
+          if (!isActive && value.length > 0) {
+            isActive = true;
+            startTime = Date.now();
+            intervalId = setInterval(() => {
+              calculateWPM();
+              updateDisplay();
+            }, 100);
+          }
+
+          userInput = value;
+          currentIndex = userInput.length;
+          calculateAccuracy();
+
+          if (userInput.length === text.length) {
+            finishTest();
+          } else {
+            updateDisplay();
+          }
+        });
+
+        resetBtn.addEventListener("click", resetTest);
+
+        resetTest();
+      })();
+    </script>
+  </body>
+</html>
